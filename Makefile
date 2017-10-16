@@ -1,5 +1,5 @@
-OBJ = server.o serverlib.o
-DEPS = serverlib.h
+OBJ = server.o serverlib.o service.o
+DEPS = serverlib.h service.h
 
 all: server
 
