@@ -49,3 +49,30 @@ ssize_t writen(int sockfd, const char *vptr, size_t n) {
     }
     return n;
 }
+
+// TODO: don't read one byte at a time
+ssize_t readline(int sockfd, char *vptr, size_t maxlen) {
+    ssize_t n, rc;
+    char c, *ptr;
+
+    ptr = vptr;
+    for (n = 1; n < maxlen; n++) {
+        if ((rc = read(sockfd, &c, 1)) == 1) {
+            *ptr++ = c;
+            if (c == '\n')
+                break;
+        }
+        else if (rc == 0) {
+            *ptr = 0;
+            return n-1;
+        }
+        else {
+            if (errno == EINTR)
+                n--;
+            else
+                return -1;
+        }
+    }
+    *ptr = 0;
+    return n;
+}
