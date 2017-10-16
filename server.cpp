@@ -10,6 +10,7 @@
 #include <errno.h>
 
 #include "serverlib.h"
+#include "service.h"
 
 #define SERV_TCP_PORT 2020
 
@@ -48,7 +49,7 @@ int main(int argc, char const* argv[])
         else if (childpid == 0) {
             close(sockfd);
             // TODO: process the request
-            std::cout << "success" << std::endl;
+            str_echo(newsockfd);
             exit(0);
         }
         close(newsockfd);
