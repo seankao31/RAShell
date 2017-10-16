@@ -9,6 +9,8 @@
 #include <iostream>
 #include <errno.h>
 
+#include "serverlib.h"
+
 #define SERV_TCP_PORT 2020
 
 int main(int argc, char const* argv[])
