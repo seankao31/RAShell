@@ -85,8 +85,6 @@ struct command* parse_command(std::string line) {
     }
 
     while (segment != NULL) {
-        log(segment);
-        log("\n");
         if (segment[0] == '|') {
             if (segment[1] == '\0') {
                 pipe_to = 1;
@@ -96,35 +94,46 @@ struct command* parse_command(std::string line) {
                 sscanf(segment, "%c%d",&junk, &pipe_to);
             }
             cur->pipe_to = pipe_to;
+            segment = strtok(NULL, TOKEN_DELIMITERS);
         }
         else if (segment[0] == '>') {
             cur->write_file = 1;
             cur->file_name = strtok(NULL, TOKEN_DELIMITERS);
+            break;
         }
         else {
+            struct command *cmd = new struct command();
+            cur = cur->next = cmd;
             for (argc = 0; argc < ARGSIZE; argc++) {
+                if (segment != NULL && (segment[0] == '|' || segment[0] == '>'))
+                    break;
+                cur->args[argc] = segment;
+                if (cur->args[argc] == NULL)
+                    break;
+                segment = strtok(NULL, TOKEN_DELIMITERS);
             }
-
         }
-
-        segment = strtok(NULL, TOKEN_DELIMITERS);
     }
 
-    for (argc = 0; argc < 10; argc++) {
-        log(cur->args[argc]);
-        log("\n");
-    }
-    if (cur->write_file) {
-        log("write to ");
-        log(cur->file_name);
-        log("\n");
-    }
-    else {
-        log("pipe to: ");
-        char numstr[10];
-        sprintf(numstr, "%d", cur->pipe_to);
-        log(numstr);
-        log("\n");
+    for (cur = root; cur != NULL; cur = cur->next) {
+        for (argc = 0; argc < 10; argc++) {
+            log(cur->args[argc]);
+            log("\n");
+            if(cur->args[argc] == NULL)
+                break;
+        }
+        if (cur->write_file) {
+            log("write to ");
+            log(cur->file_name);
+            log("\n");
+        }
+        else {
+            log("pipe to: ");
+            char numstr[10];
+            sprintf(numstr, "%d", cur->pipe_to);
+            log(numstr);
+            log("\n");
+        }
     }
 
     ////////
