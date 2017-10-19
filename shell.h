@@ -66,53 +66,95 @@ struct command* parse_command(std::string line) {
     std::copy(line.begin(), line.end(), sep);
     sep[line.length()] = '\0';
     char *segment;
-    int argc;
     int pipe_to;
+    int argc;
 
-    segment = strsep(&sep, "|");
-    //log(sep);
-    if (sep && sep[0] != ' ' && sep[0] != '\n') {
-        sscanf(sep, "%d", &pipe_to);
-
-        //char numstr[10];
-        //sprintf(numstr, "%d", pipe_to);
-        //log(numstr);
-        //log("\n");
-    }
-    else
-        pipe_to = 1;
+    //while (segment != NULL) {
+        //if (segment[0] == '|' || segment[0] == '>')
+            //break;
     for (argc = 0; argc < ARGSIZE; argc++) {
-        cur->args[argc] = strtok(segment, TOKEN_DELIMITERS);
+        segment = strtok(sep, TOKEN_DELIMITERS);
+        if (segment != NULL && (segment[0] == '|' || segment[0] == '>'))
+            break;
+        cur->args[argc] = segment;
         if (cur->args[argc] == NULL)
             break;
-        segment = NULL;
+        sep = NULL;
     }
+    //}
 
-    while ((segment = strsep(&sep, "|")) != NULL) {
-        //struct command_segment *cmd_seg = malloc(sizeof(struct command_segment));
-        //log(sep);
-        if (sep && sep[0] != ' ' && sep[0] != '\n') {
-            sscanf(sep, "%d", &pipe_to);
+    log(segment);
 
-            //char numstr[10];
-            //sprintf(numstr, "%d", pipe_to);
-            //log(numstr);
-            //log("\n");
-        }
-        else
-            pipe_to = 1;
-        struct command *cmd = new struct command();
-        cur = cur->next = cmd;
-        for (argc = 0; argc < ARGSIZE; argc++) {
-            cur->args[argc] = strtok(segment, TOKEN_DELIMITERS);
-            if (cur->args[argc] == NULL)
-                break;
-            segment = NULL;
-        }
-    }
-    cur->next = NULL;
+    //while (segment != NULL) {
+        //log(segment);
+        //log("\n");
+        //if (segment[0] == '|') {
+            //if (segment[1] == '\0') {
+                //pipe_to = 1;
+            //}
+            //else {
+                //char junk;
+                //sscanf(segment, "%c%d",&junk, &pipe_to);
+            //}
+        //}
+        //else if (segment[0] == '>') {
 
-    delete[] sep;
+        //}
+        //else {
+            //for (argc = 0; argc < ARGSIZE; argc++) {
+            //}
+
+        //}
+
+        //segment = strtok(NULL, TOKEN_DELIMITERS);
+    //}
+
+    ////////
+
+    //segment = strsep(&sep, "|");
+    ////log(sep);
+    //if (sep && sep[0] != ' ' && sep[0] != '\n') {
+        //sscanf(sep, "%d", &pipe_to);
+
+        ////char numstr[10];
+        ////sprintf(numstr, "%d", pipe_to);
+        ////log(numstr);
+        ////log("\n");
+    //}
+    //else
+        //pipe_to = 1;
+    //for (argc = 0; argc < ARGSIZE; argc++) {
+        //cur->args[argc] = strtok(segment, TOKEN_DELIMITERS);
+        //if (cur->args[argc] == NULL)
+            //break;
+        //segment = NULL;
+    //}
+
+    //while ((segment = strsep(&sep, "|")) != NULL) {
+        ////struct command_segment *cmd_seg = malloc(sizeof(struct command_segment));
+        ////log(sep);
+        //if (sep && sep[0] != ' ' && sep[0] != '\n') {
+            //sscanf(sep, "%d", &pipe_to);
+
+            ////char numstr[10];
+            ////sprintf(numstr, "%d", pipe_to);
+            ////log(numstr);
+            ////log("\n");
+        //}
+        //else
+            //pipe_to = 1;
+        //struct command *cmd = new struct command();
+        //cur = cur->next = cmd;
+        //for (argc = 0; argc < ARGSIZE; argc++) {
+            //cur->args[argc] = strtok(segment, TOKEN_DELIMITERS);
+            //if (cur->args[argc] == NULL)
+                //break;
+            //segment = NULL;
+        //}
+    //}
+    //cur->next = NULL;
+
+    //delete[] sep;
     return root;
 }
 
