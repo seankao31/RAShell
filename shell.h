@@ -54,7 +54,7 @@ void log(const char* str) {
 struct command {
     char *args[ARGSIZE];
     struct command *next;
-    int pipe_to;
+    int pipe_to; // 0 for normal pipe, -1 for stdout, n for special pipe
     bool write_file;
     char *file_name;
 };
@@ -71,23 +71,25 @@ struct command* parse_command(std::string line) {
     int pipe_to;
     int argc;
 
-    cur->pipe_to = 0;
+    cur->pipe_to = -1; // -1 for stdout
     cur->write_file = 0;
     cur->file_name = NULL;
+    segment = strtok(sep, TOKEN_DELIMITERS);
     for (argc = 0; argc < ARGSIZE; argc++) {
-        segment = strtok(sep, TOKEN_DELIMITERS);
-        if (segment != NULL && (segment[0] == '|' || segment[0] == '>'))
+        if (segment != NULL && (segment[0] == '|' || segment[0] == '>')) {
+            cur->args[argc] = NULL;
             break;
+        }
         cur->args[argc] = segment;
         if (cur->args[argc] == NULL)
             break;
-        sep = NULL;
+        segment = strtok(NULL, TOKEN_DELIMITERS);
     }
 
     while (segment != NULL) {
         if (segment[0] == '|') {
             if (segment[1] == '\0') {
-                pipe_to = 1;
+                pipe_to = 0; // 0 for normal pipe
             }
             else {
                 char junk;
@@ -104,9 +106,14 @@ struct command* parse_command(std::string line) {
         else {
             struct command *cmd = new struct command();
             cur = cur->next = cmd;
+            cur->pipe_to = -1; // -1 for stdout
+            cur->write_file = 0;
+            cur->file_name = NULL;
             for (argc = 0; argc < ARGSIZE; argc++) {
-                if (segment != NULL && (segment[0] == '|' || segment[0] == '>'))
+                if (segment != NULL && (segment[0] == '|' || segment[0] == '>')) {
+                    cur->args[argc] = NULL;
                     break;
+                }
                 cur->args[argc] = segment;
                 if (cur->args[argc] == NULL)
                     break;
@@ -136,52 +143,7 @@ struct command* parse_command(std::string line) {
         }
     }
 
-    ////////
-
-    //segment = strsep(&sep, "|");
-    ////log(sep);
-    //if (sep && sep[0] != ' ' && sep[0] != '\n') {
-        //sscanf(sep, "%d", &pipe_to);
-
-        ////char numstr[10];
-        ////sprintf(numstr, "%d", pipe_to);
-        ////log(numstr);
-        ////log("\n");
-    //}
-    //else
-        //pipe_to = 1;
-    //for (argc = 0; argc < ARGSIZE; argc++) {
-        //cur->args[argc] = strtok(segment, TOKEN_DELIMITERS);
-        //if (cur->args[argc] == NULL)
-            //break;
-        //segment = NULL;
-    //}
-
-    //while ((segment = strsep(&sep, "|")) != NULL) {
-        ////struct command_segment *cmd_seg = malloc(sizeof(struct command_segment));
-        ////log(sep);
-        //if (sep && sep[0] != ' ' && sep[0] != '\n') {
-            //sscanf(sep, "%d", &pipe_to);
-
-            ////char numstr[10];
-            ////sprintf(numstr, "%d", pipe_to);
-            ////log(numstr);
-            ////log("\n");
-        //}
-        //else
-            //pipe_to = 1;
-        //struct command *cmd = new struct command();
-        //cur = cur->next = cmd;
-        //for (argc = 0; argc < ARGSIZE; argc++) {
-            //cur->args[argc] = strtok(segment, TOKEN_DELIMITERS);
-            //if (cur->args[argc] == NULL)
-                //break;
-            //segment = NULL;
-        //}
-    //}
-    //cur->next = NULL;
-
-    //delete[] sep;
+    delete[] sep;
     return root;
 }
 
