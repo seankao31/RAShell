@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
@@ -65,12 +66,23 @@ struct command* parse_command(std::string line) {
     std::copy(line.begin(), line.end(), sep);
     sep[line.length()] = '\0';
     char *segment;
-    int argc = 0;
+    int argc;
+    int pipe_to;
+
     segment = strsep(&sep, "|");
+    //log(sep);
+    if (sep && sep[0] != ' ' && sep[0] != '\n') {
+        sscanf(sep, "%d", &pipe_to);
+
+        //char numstr[10];
+        //sprintf(numstr, "%d", pipe_to);
+        //log(numstr);
+        //log("\n");
+    }
+    else
+        pipe_to = 1;
     for (argc = 0; argc < ARGSIZE; argc++) {
         cur->args[argc] = strtok(segment, TOKEN_DELIMITERS);
-        log(cur->args[argc]);
-        log("\n");
         if (cur->args[argc] == NULL)
             break;
         segment = NULL;
@@ -78,12 +90,21 @@ struct command* parse_command(std::string line) {
 
     while ((segment = strsep(&sep, "|")) != NULL) {
         //struct command_segment *cmd_seg = malloc(sizeof(struct command_segment));
+        //log(sep);
+        if (sep && sep[0] != ' ' && sep[0] != '\n') {
+            sscanf(sep, "%d", &pipe_to);
+
+            //char numstr[10];
+            //sprintf(numstr, "%d", pipe_to);
+            //log(numstr);
+            //log("\n");
+        }
+        else
+            pipe_to = 1;
         struct command *cmd = new struct command();
         cur = cur->next = cmd;
         for (argc = 0; argc < ARGSIZE; argc++) {
             cur->args[argc] = strtok(segment, TOKEN_DELIMITERS);
-            log(cur->args[argc]);
-            log("\n");
             if (cur->args[argc] == NULL)
                 break;
             segment = NULL;
