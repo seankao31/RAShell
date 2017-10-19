@@ -34,6 +34,14 @@ void prompt() {
     writen(sockfd, "% ", 2);
 }
 
+void err_dump(const std::string str) {
+    writen(sockfd, str.c_str(), str.length());
+}
+
+void err_dump(const char* str) {
+    writen(sockfd, str, strlen(str));
+}
+
 void loop() {
     std::string line;
     struct command *command;
@@ -45,7 +53,8 @@ void loop() {
         if (line.length() == 0) {
             continue;
         }
-        writen(sockfd, line.c_str(), line.length());
+        err_dump(line);
+        err_dump(line.c_str());
     } while (status >= 0);
 }
 
