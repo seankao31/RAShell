@@ -6,11 +6,12 @@
 #include <unistd.h>
 #include <strings.h>
 #include <string.h>
+#include <string>
 #include <iostream>
 #include <errno.h>
 
 #include "serverlib.h"
-#include "service.h"
+#include "echo.h"
 
 #define SERV_TCP_PORT 2020
 

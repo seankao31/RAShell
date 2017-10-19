@@ -1,13 +1,14 @@
-OBJ = server.o serverlib.o service.o
-DEPS = serverlib.h service.h
+OBJ = server.o
+DEPS = serverlib.h echo.h
+FLAGS = -std=c++11
 
 all: server
 
 server: $(OBJ)
-	g++ -o $@ $+
+	g++ -o $@ $+ $(FLAGS)
 
 %.o: %.cpp $(DEPS)
-	g++ -c -o $@ $<
+	g++ -c -o $@ $< $(FLAGS)
 
 clean:
 	rm -f server $(OBJ)
