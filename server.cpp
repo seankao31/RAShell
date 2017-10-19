@@ -11,7 +11,7 @@
 #include <errno.h>
 
 #include "serverlib.h"
-#include "echo.h"
+#include "shell.h"
 
 #define SERV_TCP_PORT 2020
 
@@ -49,8 +49,7 @@ int main(int argc, char const* argv[])
         }
         else if (childpid == 0) {
             close(sockfd);
-            // TODO: process the request
-            str_echo(newsockfd);
+            shell(newsockfd);
             exit(0);
         }
         close(newsockfd);

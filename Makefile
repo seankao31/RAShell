@@ -1,5 +1,5 @@
 OBJ = server.o
-DEPS = serverlib.h echo.h
+DEPS = serverlib.h shell.h
 FLAGS = -std=c++11
 
 all: server
