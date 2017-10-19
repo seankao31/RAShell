@@ -11,14 +11,47 @@
 #define TOKEN_DELIMITERS " \t\r\n\a"
 #define ARGSIZE 128
 
-void welcome(int sockfd) {
+int sockfd;
+
+struct command_segment {
+    char *args[ARGSIZE];
+    struct command_segment *next;
+};
+
+struct command {
+    struct command_segment *root;
+    int pipe_to;
+};
+
+void welcome() {
     std::string greet = "****************************************\n"
                         "** Welcome to the information server. **\n"
                         "****************************************\n";
     writen(sockfd, greet.c_str(), greet.length());
 }
 
-int shell(int sockfd) {
-    welcome(sockfd);
+void prompt() {
+    writen(sockfd, "% ", 2);
+}
+
+void loop() {
+    std::string line;
+    struct command *command;
+    int status = 0;
+
+    do {
+        prompt();
+        myreadline(sockfd, line);
+        if (line.length() == 0) {
+            continue;
+        }
+        writen(sockfd, line.c_str(), line.length());
+    } while (status >= 0);
+}
+
+int shell(int fd) {
+    sockfd = fd;
+    welcome();
+    loop();
     return 0;
 }
