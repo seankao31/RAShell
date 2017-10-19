@@ -29,6 +29,11 @@ void err_dump(const std::string str) {
 }
 
 void err_dump(const char* str) {
+    if (str == NULL) {
+        std::string errmsg = "trying to err_dump NULL string\n";
+        writen(sockfd, errmsg.c_str(), errmsg.length());
+        return;
+    }
     writen(sockfd, str, strlen(str));
 }
 
@@ -37,13 +42,17 @@ void log(const std::string str) {
 }
 
 void log(const char* str) {
+    if (str == NULL) {
+        std::string errmsg = "trying to log NULL string\n";
+        writen(sockfd, errmsg.c_str(), errmsg.length());
+        return;
+    }
     writen(sockfd, str, strlen(str));
-    writen(sockfd, str, strlen(str) * sizeof(char));
 }
 
 struct command {
     char *args[ARGSIZE];
-    struct command_segment *next;
+    struct command *next;
     int pipe_to;
 };
 
@@ -58,22 +67,31 @@ struct command* parse_command(std::string line) {
     char *segment;
     int argc = 0;
     segment = strsep(&sep, "|");
-    //for (argc = 0; argc < ARGSIZE && (cur->args[argc] = strtok(segment, TOKEN_DELIMITERS)) != NULL; argc++)
-        //segment = NULL;
-    //cur->args[argc] = NULL;
-    //log(sep);
-    log(segment);
+    for (argc = 0; argc < ARGSIZE; argc++) {
+        cur->args[argc] = strtok(segment, TOKEN_DELIMITERS);
+        log(cur->args[argc]);
+        log("\n");
+        if (cur->args[argc] == NULL)
+            break;
+        segment = NULL;
+    }
 
-    //while ((segment = strsep(&sep, "|")) != NULL) {
+    while ((segment = strsep(&sep, "|")) != NULL) {
         //struct command_segment *cmd_seg = malloc(sizeof(struct command_segment));
-        //cur = cur->next = cmd_seg;
-        //for (argc = 0; argc < ARGSIZE - 1 && (cur->args[argc] = strtok(segment, TOKEN_DELIMITERS)) != NULL; argc++)
-            //segment = NULL;
-        //cur->args[argc] = NULL;
-    //}
-    //cur->next = NULL;
+        struct command *cmd = new struct command();
+        cur = cur->next = cmd;
+        for (argc = 0; argc < ARGSIZE; argc++) {
+            cur->args[argc] = strtok(segment, TOKEN_DELIMITERS);
+            log(cur->args[argc]);
+            log("\n");
+            if (cur->args[argc] == NULL)
+                break;
+            segment = NULL;
+        }
+    }
+    cur->next = NULL;
 
-    //delete[] sep;
+    delete[] sep;
     return root;
 }
 
