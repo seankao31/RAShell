@@ -55,6 +55,8 @@ struct command {
     char *args[ARGSIZE];
     struct command *next;
     int pipe_to;
+    bool write_file;
+    char *file_name;
 };
 
 struct command* parse_command(std::string line) {
@@ -69,9 +71,9 @@ struct command* parse_command(std::string line) {
     int pipe_to;
     int argc;
 
-    //while (segment != NULL) {
-        //if (segment[0] == '|' || segment[0] == '>')
-            //break;
+    cur->pipe_to = 0;
+    cur->write_file = 0;
+    cur->file_name = NULL;
     for (argc = 0; argc < ARGSIZE; argc++) {
         segment = strtok(sep, TOKEN_DELIMITERS);
         if (segment != NULL && (segment[0] == '|' || segment[0] == '>'))
@@ -81,33 +83,49 @@ struct command* parse_command(std::string line) {
             break;
         sep = NULL;
     }
-    //}
 
-    log(segment);
+    while (segment != NULL) {
+        log(segment);
+        log("\n");
+        if (segment[0] == '|') {
+            if (segment[1] == '\0') {
+                pipe_to = 1;
+            }
+            else {
+                char junk;
+                sscanf(segment, "%c%d",&junk, &pipe_to);
+            }
+            cur->pipe_to = pipe_to;
+        }
+        else if (segment[0] == '>') {
+            cur->write_file = 1;
+            cur->file_name = strtok(NULL, TOKEN_DELIMITERS);
+        }
+        else {
+            for (argc = 0; argc < ARGSIZE; argc++) {
+            }
 
-    //while (segment != NULL) {
-        //log(segment);
-        //log("\n");
-        //if (segment[0] == '|') {
-            //if (segment[1] == '\0') {
-                //pipe_to = 1;
-            //}
-            //else {
-                //char junk;
-                //sscanf(segment, "%c%d",&junk, &pipe_to);
-            //}
-        //}
-        //else if (segment[0] == '>') {
+        }
 
-        //}
-        //else {
-            //for (argc = 0; argc < ARGSIZE; argc++) {
-            //}
+        segment = strtok(NULL, TOKEN_DELIMITERS);
+    }
 
-        //}
-
-        //segment = strtok(NULL, TOKEN_DELIMITERS);
-    //}
+    for (argc = 0; argc < 10; argc++) {
+        log(cur->args[argc]);
+        log("\n");
+    }
+    if (cur->write_file) {
+        log("write to ");
+        log(cur->file_name);
+        log("\n");
+    }
+    else {
+        log("pipe to: ");
+        char numstr[10];
+        sprintf(numstr, "%d", cur->pipe_to);
+        log(numstr);
+        log("\n");
+    }
 
     ////////
 
