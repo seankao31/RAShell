@@ -38,6 +38,12 @@ void err_dump(const char* str) {
     writen(sockfd, str, strlen(str));
 }
 
+void log(const int i) {
+    char numstr[10];
+    sprintf(numstr, "%d", i);
+    writen(sockfd, numstr, strlen(numstr));
+}
+
 void log(const std::string str) {
     writen(sockfd, str.c_str(), str.length());
 }
@@ -54,7 +60,7 @@ void log(const char* str) {
 struct command {
     char *args[ARGSIZE];
     struct command *next;
-    int pipe_to; // 0 for normal pipe, -1 for stdout, n for special pipe
+    int pipe_to; // 0 for ordinary pipe, -1 for stdout, n for special pipe
     bool write_file;
     char *file_name;
 };
@@ -89,7 +95,7 @@ struct command* parse_command(std::string line) {
     while (segment != NULL) {
         if (segment[0] == '|') {
             if (segment[1] == '\0') {
-                pipe_to = 0; // 0 for normal pipe
+                pipe_to = 0; // 0 for ordinary pipe
             }
             else {
                 char junk;
@@ -136,19 +142,64 @@ struct command* parse_command(std::string line) {
         }
         else {
             log("pipe to: ");
-            char numstr[10];
-            sprintf(numstr, "%d", cur->pipe_to);
-            log(numstr);
+            log(cur->pipe_to);
             log("\n");
         }
     }
 
-    delete[] sep;
     return root;
 }
 
+int execute_single_command(struct command *command, int in_fd, int out_fd) {
+    if (command->args[0] == NULL) {
+        // do nothing (empty command)
+        return 0;
+    }
+
+    int status;
+
+    log("now execute command: ");
+    log(command->args[0]);
+    log("\n");
+
+    // built in command
+    if (strcmp(command->args[0], "exit") == 0) {
+        log("this is exit\n");
+        return -1;
+    }
+
+    else {
+        log("this is not exit\n");
+        return 0;
+    }
+}
+
 int execute_command(struct command *command) {
-    return 0;
+    struct command *cur;
+    int status = 0;
+    int in = 0, fd[2];
+
+    for (cur = command; cur != NULL && status != -1; cur = cur->next) {
+        // ordinary pipe
+        if (cur->pipe_to == 0) {
+            pipe(fd);
+            log("execute (ordinary pipe)\n");
+            status = execute_single_command(cur, in, fd[1]);
+            close(fd[1]);
+            in = fd[0];
+        }
+        // stdout
+        else if (cur->pipe_to == -1) {
+            log("execute (stdout)\n");
+            status = execute_single_command(cur, in, 1);
+        }
+        // pipe n
+        else {
+
+        }
+    }
+
+    return status;
 }
 
 void loop() {
@@ -156,7 +207,7 @@ void loop() {
     struct command *command;
     int status = 0;
 
-    do {
+    while (status >= 0) {
         prompt();
         myreadline(sockfd, line);
         if (line.length() == 0) {
@@ -164,7 +215,10 @@ void loop() {
         }
         command = parse_command(line.c_str());
         status = execute_command(command);
-    } while (status >= 0);
+        log("status: ");
+        log(status);
+        log("\n");
+    }
 }
 
 int shell(int fd) {
