@@ -148,15 +148,15 @@ struct command* parse_command(std::string line) {
 
     // for (cur = root; cur != NULL; cur = cur->next) {
     //     for (argc = 0; argc < 10; argc++) {
-    //         log(cur->args[argc]);
+    //         std::cout << cur->args[argc] << std::endl;
     //         if(cur->args[argc] == NULL)
     //             break;
     //     }
     //     if (cur->write_file) {
-    //         log(std::string("write to ") + cur->file_name);
+    //         std::cout << "write to " << cur->file_name << std::endl;
     //     }
     //     else {
-    //         log(std::string("pipe to: ") + cur->pipe_to);
+    //         std::cout << "pipe to: " << cur->pipe_to << std::endl;
     //     }
     // }
 
@@ -172,14 +172,12 @@ int execute_single_command(struct command *command, int in_fd, int out_fd) {
         // do nothing (empty command)
         return 0;
     }
+    // TODO: check if there's '/' character
 
     int status = 0;
 
-    // log(std::string("now execute command: ") + command->args[0]);
-
     // built in command
     if (strcmp(command->args[0], "exit") == 0) {
-        // log("this is exit");
         execute_exit();
     }
     else if (strcmp(command->args[0], "printenv") == 0) {
@@ -213,7 +211,7 @@ int execute_single_command(struct command *command, int in_fd, int out_fd) {
                 perror("fork");
                 break;
             case 0:
-                std::cout << std::string("Command ") + command->args[0] + " executed by pid=" + std::to_string(getpid()) << std::endl;
+                std::cout << std::string("Command [") + command->args[0] + "] executed by pid=" + std::to_string(getpid()) << std::endl;
                 dup2(in_fd, 0);
                 if (out_fd == 1) {
                     dup2(sockfd, 1);
@@ -243,6 +241,9 @@ int execute_single_command(struct command *command, int in_fd, int out_fd) {
                 if (waitpid(pid, &status, 0) == -1) {
                     err_dump(strerror(errno));
                 }
+                if (status != 0) {
+                    status = -1;
+                }
         }
     }
 
@@ -258,20 +259,19 @@ int execute_command(struct command *command) {
         // ordinary pipe
         if (cur->pipe_to == 0) {
             pipe(fd);
-            // log("execute (ordinary pipe)");
             status = execute_single_command(cur, in, fd[1]);
             close(fd[1]);
             in = fd[0];
         }
         // stdout
         else if (cur->pipe_to == -1) {
-            // log("execute (stdout)");
             status = execute_single_command(cur, in, 1);
         }
         // pipe n
         else {
 
         }
+        std::cout << "status: " << status << std::endl;
     }
 
     return status;
@@ -290,9 +290,8 @@ void loop() {
         }
         command = parse_command(line.c_str());
         status = execute_command(command);
-        // log("status: " + std::to_string(status));
         if (status == -1) {
-            err_dump("command execution stopped");
+            std::cerr << "command execution stopped" << std::endl;
             status = 0;
         }
     }
