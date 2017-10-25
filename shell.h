@@ -298,7 +298,11 @@ void loop() {
 }
 
 void init() {
-    setenv("PATH", "bin", 1);
+    char *home;
+    home = getenv("HOME");
+    chdir(home);
+    chdir("ras");
+    setenv("PATH", "bin:.", 1);
 }
 
 int shell(int fd) {

@@ -13,13 +13,16 @@
 #include "serverlib.h"
 #include "shell.h"
 
-#define SERV_TCP_PORT 2020
-
 int main(int argc, char const* argv[])
 {
     int sockfd, newsockfd, childpid;
     unsigned clilen;
     struct sockaddr_in cli_addr, serv_addr;
+
+    int SERV_TCP_PORT = 7000;
+    if (argc != 1) {
+        SERV_TCP_PORT = std::stoi(argv[1]);
+    }
 
     // Open a TCP socket
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {

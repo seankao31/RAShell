@@ -2,4 +2,5 @@ commands/
 test/
 output/
 client.c
+client
 test.html
