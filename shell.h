@@ -268,6 +268,7 @@ int execute_command(struct command *command) {
         else if (cur->pipe_to == 0) {
             pipe(fd);
             status = execute_single_command(cur, in, fd[1]);
+            close(in);
             close(fd[1]);
             in = fd[0];
         }
