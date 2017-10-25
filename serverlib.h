@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <string>
 
-#define MAXLINE 10000
+#define MAXLINE 10001
 
 int read_cnt = 0;
 char *read_ptr;
