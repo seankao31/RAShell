@@ -27,6 +27,7 @@ void prompt() {
 
 void err_dump(const std::string str) {
     writen(sockfd, str.c_str(), str.length());
+    writen(sockfd, "\n", 1);
 }
 
 void err_dump(const char* str) {
@@ -36,19 +37,36 @@ void err_dump(const char* str) {
         return;
     }
     writen(sockfd, str, strlen(str));
+    writen(sockfd, "\n", 1);
 }
 
 void log(const int i) {
     char numstr[10];
     sprintf(numstr, "%d", i);
     writen(sockfd, numstr, strlen(numstr));
+    writen(sockfd, "\n", 1);
 }
 
 void log(const std::string str) {
     writen(sockfd, str.c_str(), str.length());
+    writen(sockfd, "\n", 1);
 }
 
 void log(const char* str) {
+    if (str == NULL) {
+        std::string errmsg = "trying to log NULL string\n";
+        writen(sockfd, errmsg.c_str(), errmsg.length());
+        return;
+    }
+    writen(sockfd, str, strlen(str));
+    writen(sockfd, "\n", 1);
+}
+
+void client_output(const std::string str) {
+    writen(sockfd, str.c_str(), str.length());
+}
+
+void client_output(const char* str) {
     if (str == NULL) {
         std::string errmsg = "trying to log NULL string\n";
         writen(sockfd, errmsg.c_str(), errmsg.length());
@@ -128,26 +146,25 @@ struct command* parse_command(std::string line) {
         }
     }
 
-    for (cur = root; cur != NULL; cur = cur->next) {
-        for (argc = 0; argc < 10; argc++) {
-            log(cur->args[argc]);
-            log("\n");
-            if(cur->args[argc] == NULL)
-                break;
-        }
-        if (cur->write_file) {
-            log("write to ");
-            log(cur->file_name);
-            log("\n");
-        }
-        else {
-            log("pipe to: ");
-            log(cur->pipe_to);
-            log("\n");
-        }
-    }
+    // for (cur = root; cur != NULL; cur = cur->next) {
+    //     for (argc = 0; argc < 10; argc++) {
+    //         log(cur->args[argc]);
+    //         if(cur->args[argc] == NULL)
+    //             break;
+    //     }
+    //     if (cur->write_file) {
+    //         log(std::string("write to ") + cur->file_name);
+    //     }
+    //     else {
+    //         log(std::string("pipe to: ") + cur->pipe_to);
+    //     }
+    // }
 
     return root;
+}
+
+int execute_exit() {
+    return -1;
 }
 
 int execute_single_command(struct command *command, int in_fd, int out_fd) {
@@ -158,20 +175,66 @@ int execute_single_command(struct command *command, int in_fd, int out_fd) {
 
     int status;
 
-    log("now execute command: ");
-    log(command->args[0]);
-    log("\n");
+    // log(std::string("now execute command: ") + command->args[0]);
 
     // built in command
     if (strcmp(command->args[0], "exit") == 0) {
-        log("this is exit\n");
-        return -1;
+        // log("this is exit");
+        status = execute_exit();
+    }
+    else if (strcmp(command->args[0], "printenv") == 0) {
+        char* pPath;
+        pPath = getenv(command->args[1]);
+        if (pPath == NULL) {
+            err_dump("PATH is NULL");
+            return -1;
+        }
+        else {
+            client_output(command->args[1]);
+            client_output("=");
+            client_output(pPath);
+            client_output("\n");
+            return 0;
+        }
+    }
+    else {
+        pid_t pid;
+        switch (pid = fork()) {
+            case -1:
+                perror("fork");
+                break;
+            case 0:
+                log(std::string("Command ") + command->args[0] + " executed by pid=" + std::to_string(getpid()));
+                dup2(in_fd, 0);
+                dup2(out_fd, 1);
+                // TODO: stderr should redirect to parent stdout
+
+                if (in_fd != 0) {
+                    close(in_fd);
+                }
+                if (out_fd != 1) {
+                    close(out_fd);
+                }
+
+                if (execvp(command->args[0], command->args) == -1) {
+                    if (errno == ENOENT) {
+                        err_dump(std::string("Unknown command: [") + command->args[0] + "].");
+                    }
+                    else {
+                        err_dump(strerror(errno));
+                    }
+                    exit(1);
+                }
+            default:
+                if (waitpid(pid, &status, 0) == -1) {
+                    err_dump(strerror(errno));
+                }
+        }
+
+        status = 0;
     }
 
-    else {
-        log("this is not exit\n");
-        return 0;
-    }
+    return status;
 }
 
 int execute_command(struct command *command) {
@@ -183,14 +246,14 @@ int execute_command(struct command *command) {
         // ordinary pipe
         if (cur->pipe_to == 0) {
             pipe(fd);
-            log("execute (ordinary pipe)\n");
+            // log("execute (ordinary pipe)");
             status = execute_single_command(cur, in, fd[1]);
             close(fd[1]);
             in = fd[0];
         }
         // stdout
         else if (cur->pipe_to == -1) {
-            log("execute (stdout)\n");
+            // log("execute (stdout)");
             status = execute_single_command(cur, in, 1);
         }
         // pipe n
@@ -215,9 +278,7 @@ void loop() {
         }
         command = parse_command(line.c_str());
         status = execute_command(command);
-        log("status: ");
-        log(status);
-        log("\n");
+        // log("status: " + std::to_string(status));
     }
 }
 
