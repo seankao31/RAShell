@@ -295,8 +295,13 @@ void loop() {
     }
 }
 
+void init() {
+    setenv("PATH", "bin", 1);
+}
+
 int shell(int fd) {
     sockfd = fd;
+    init();
     welcome();
     loop();
     return 0;
