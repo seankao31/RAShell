@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
+#include <fcntl.h>
 #include <sys/wait.h>
 #include <errno.h>
 
@@ -256,8 +257,15 @@ int execute_command(struct command *command) {
     int in = 0, fd[2];
 
     for (cur = command; cur != NULL && status != -1; cur = cur->next) {
+        bool write_file;
+        char *file_name;
+        // file
+        if (cur->write_file) {
+            int filefd = creat(cur->file_name, 0644);
+            status = execute_single_command(cur, in, filefd);
+        }
         // ordinary pipe
-        if (cur->pipe_to == 0) {
+        else if (cur->pipe_to == 0) {
             pipe(fd);
             status = execute_single_command(cur, in, fd[1]);
             close(fd[1]);
