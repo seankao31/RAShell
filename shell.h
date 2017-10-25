@@ -68,7 +68,7 @@ void client_output(const std::string str) {
 
 void client_output(const char* str) {
     if (str == NULL) {
-        std::string errmsg = "trying to log NULL string\n";
+        std::string errmsg = "trying to output NULL string\n";
         writen(sockfd, errmsg.c_str(), errmsg.length());
         return;
     }
@@ -185,17 +185,18 @@ int execute_single_command(struct command *command, int in_fd, int out_fd) {
     else if (strcmp(command->args[0], "printenv") == 0) {
         char* pPath;
         pPath = getenv(command->args[1]);
+        std::string path;
         if (pPath == NULL) {
-            err_dump("PATH is NULL");
-            return -1;
+            path = "";
         }
         else {
-            client_output(command->args[1]);
-            client_output("=");
-            client_output(pPath);
-            client_output("\n");
-            return 0;
+            path = pPath;
         }
+        client_output(std::string(command->args[1]) + "=" + path + "\n");
+        status = 0;
+    }
+    else if (strcmp(command->args[0], "setenv") == 0) {
+        status = setenv(command->args[1], command->args[2], 1);
     }
     else {
         pid_t pid;
