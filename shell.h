@@ -163,8 +163,8 @@ struct command* parse_command(std::string line) {
     return root;
 }
 
-int execute_exit() {
-    return -1;
+void execute_exit() {
+    exit(0);
 }
 
 int execute_single_command(struct command *command, int in_fd, int out_fd) {
@@ -173,17 +173,21 @@ int execute_single_command(struct command *command, int in_fd, int out_fd) {
         return 0;
     }
 
-    int status;
+    int status = 0;
 
     // log(std::string("now execute command: ") + command->args[0]);
 
     // built in command
     if (strcmp(command->args[0], "exit") == 0) {
         // log("this is exit");
-        status = execute_exit();
+        execute_exit();
     }
     else if (strcmp(command->args[0], "printenv") == 0) {
         char* pPath;
+        if (command->args[1] == NULL) {
+            err_dump(std::string("incorrect argument number: [") + command->args[0] + "]");
+            return -1;
+        }
         pPath = getenv(command->args[1]);
         std::string path;
         if (pPath == NULL) {
@@ -196,6 +200,10 @@ int execute_single_command(struct command *command, int in_fd, int out_fd) {
         status = 0;
     }
     else if (strcmp(command->args[0], "setenv") == 0) {
+        if (command->args[1] == NULL || command->args[2] == NULL) {
+            err_dump(std::string("incorrect argument number: [") + command->args[0] + "]");
+            return -1;
+        }
         status = setenv(command->args[1], command->args[2], 1);
     }
     else {
@@ -280,6 +288,10 @@ void loop() {
         command = parse_command(line.c_str());
         status = execute_command(command);
         // log("status: " + std::to_string(status));
+        if (status == -1) {
+            err_dump("command execution stopped");
+            status = 0;
+        }
     }
 }
 
