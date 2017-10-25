@@ -213,17 +213,17 @@ int execute_single_command(struct command *command, int in_fd, int out_fd) {
                 perror("fork");
                 break;
             case 0:
-                log(std::string("Command ") + command->args[0] + " executed by pid=" + std::to_string(getpid()));
+                std::cout << std::string("Command ") + command->args[0] + " executed by pid=" + std::to_string(getpid()) << std::endl;
                 dup2(in_fd, 0);
-                dup2(out_fd, 1);
-                // TODO: stderr should redirect to parent stdout
+                dup2(sockfd, 1);
+                dup2(sockfd, 2);
 
-                if (in_fd != 0) {
-                    close(in_fd);
-                }
-                if (out_fd != 1) {
-                    close(out_fd);
-                }
+                // if (in_fd != 0) {
+                //     close(in_fd);
+                // }
+                // if (out_fd != 1) {
+                //     close(out_fd);
+                // }
 
                 if (execvp(command->args[0], command->args) == -1) {
                     if (errno == ENOENT) {
