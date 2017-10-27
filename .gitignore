@@ -3,4 +3,5 @@ test/
 output/
 client.c
 client
+starttest.sh
 test.html

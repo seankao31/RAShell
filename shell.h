@@ -304,7 +304,7 @@ int execute_command(struct command *command) {
         // log("input: ");
         // log(input);
         // log("----");
-        write(fd_tochild[1], input.c_str(), input.length() + 1);
+        write(fd_tochild[1], input.c_str(), input.length());
         close(fd_tochild[1]);
 
         // file
