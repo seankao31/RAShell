@@ -302,7 +302,7 @@ int execute_command(struct command *command) {
             // log(ordinary_pipe_buf);
             // log("----");
             input += ordinary_pipe_buf;
-            // TODO: somewhere clear this buf
+            ordinary_pipe_buf.clear();
         }
         // char readbuf[PIPE_CAPACITY];
         // read(in, readbuf, sizeof(readbuf));
