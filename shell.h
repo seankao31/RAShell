@@ -21,17 +21,6 @@ std::string ordinary_pipe_buf;
 int cmd_count;
 
 
-void welcome() {
-    std::string greet = "****************************************\n"
-                        "** Welcome to the information server. **\n"
-                        "****************************************\n";
-    writen(sockfd, greet.c_str(), greet.length());
-}
-
-void prompt() {
-    writen(sockfd, "% ", 2);
-}
-
 void err_dump(const std::string str) {
     writen(sockfd, str.c_str(), str.length());
     writen(sockfd, "\n", 1);
@@ -49,13 +38,11 @@ void err_dump(const char* str) {
 void log(const int i) {
     char numstr[10];
     sprintf(numstr, "%d", i);
-    // std::cerr << "log: " << numstr << std::endl;
     writen(sockfd, numstr, strlen(numstr));
     writen(sockfd, "\n", 1);
 }
 
 void log(const std::string str) {
-    // std::cerr << "log: " << str << std::endl;
     writen(sockfd, str.c_str(), str.length());
     writen(sockfd, "\n", 1);
 }
@@ -63,11 +50,9 @@ void log(const std::string str) {
 void log(const char* str) {
     if (str == NULL) {
         std::string errmsg = "trying to log NULL string\n";
-        // std::cerr << "log: " << errmsg << std::endl;
         writen(sockfd, "", 0);
         return;
     }
-    // std::cerr << "log: " << str << std::endl;
     writen(sockfd, str, strlen(str));
     writen(sockfd, "\n", 1);
 }
@@ -91,86 +76,6 @@ struct command {
     bool write_file;
     char *file_name;
 };
-
-struct command* parse_command(std::string line) {
-    //struct command *cmd = new struct command();
-    struct command *root = new struct command();
-    struct command *cur = root;
-
-    char *sep = new char[line.length() + 1];
-    std::copy(line.begin(), line.end(), sep);
-    sep[line.length()] = '\0';
-    char *segment;
-    int pipe_to;
-    int argc;
-
-    cur->pipe_to = -1; // -1 for stdout
-    cur->write_file = 0;
-    cur->file_name = NULL;
-    segment = strtok(sep, TOKEN_DELIMITERS);
-    for (argc = 0; argc < ARGSIZE; argc++) {
-        if (segment != NULL && (segment[0] == '|' || segment[0] == '>')) {
-            cur->args[argc] = NULL;
-            break;
-        }
-        cur->args[argc] = segment;
-        if (cur->args[argc] == NULL)
-            break;
-        segment = strtok(NULL, TOKEN_DELIMITERS);
-    }
-
-    while (segment != NULL) {
-        if (segment[0] == '|') {
-            if (segment[1] == '\0') {
-                pipe_to = 0; // 0 for ordinary pipe
-            }
-            else {
-                char junk;
-                sscanf(segment, "%c%d",&junk, &pipe_to);
-            }
-            cur->pipe_to = pipe_to;
-            segment = strtok(NULL, TOKEN_DELIMITERS);
-        }
-        else if (segment[0] == '>') {
-            cur->write_file = 1;
-            cur->file_name = strtok(NULL, TOKEN_DELIMITERS);
-            break;
-        }
-        else {
-            struct command *cmd = new struct command();
-            cur = cur->next = cmd;
-            cur->pipe_to = -1; // -1 for stdout
-            cur->write_file = 0;
-            cur->file_name = NULL;
-            for (argc = 0; argc < ARGSIZE; argc++) {
-                if (segment != NULL && (segment[0] == '|' || segment[0] == '>')) {
-                    cur->args[argc] = NULL;
-                    break;
-                }
-                cur->args[argc] = segment;
-                if (cur->args[argc] == NULL)
-                    break;
-                segment = strtok(NULL, TOKEN_DELIMITERS);
-            }
-        }
-    }
-
-    // for (cur = root; cur != NULL; cur = cur->next) {
-    //     for (argc = 0; argc < 10; argc++) {
-    //         std::cout << cur->args[argc] << std::endl;
-    //         if(cur->args[argc] == NULL)
-    //             break;
-    //     }
-    //     if (cur->write_file) {
-    //         std::cout << "write to " << cur->file_name << std::endl;
-    //     }
-    //     else {
-    //         std::cout << "pipe to: " << cur->pipe_to << std::endl;
-    //     }
-    // }
-
-    return root;
-}
 
 void execute_exit() {
     exit(0);
@@ -291,19 +196,10 @@ int execute_command(struct command *command) {
         // generate input for child
         std::string input = pipe_buf[cmd_count];
         if (in != 0) {
-            // log("read from ordinary_pipe_buf: ");
-            // log(ordinary_pipe_buf);
-            // log("----");
             input += ordinary_pipe_buf;
             ordinary_pipe_buf.clear();
         }
-        // char readbuf[PIPE_CAPACITY];
-        // read(in, readbuf, sizeof(readbuf));
-        // input += std::string(readbuf);
 
-        // log("input: ");
-        // log(input);
-        // log("----");
         write(fd_tochild[1], input.c_str(), input.length());
         close(fd_tochild[1]);
 
@@ -311,7 +207,6 @@ int execute_command(struct command *command) {
         if (cur->write_file) {
             int filefd = creat(cur->file_name, 0644);
             status = execute_single_command(cur, fd_tochild[0], filefd);
-            // status = execute_single_command(cur, in, filefd);
 
             close(fd_tochild[0]);
         }
@@ -325,9 +220,6 @@ int execute_command(struct command *command) {
             int n = read(fd_fromchild[0], readbuf, sizeof(readbuf));
             readbuf[n] = '\0';
             ordinary_pipe_buf = readbuf;
-            // log("write to ordinary_pipe_buf: ");
-            // log(ordinary_pipe_buf);
-            // log("----");
 
             in = fd_fromchild[0];
 
@@ -351,9 +243,6 @@ int execute_command(struct command *command) {
             int n = read(fd_fromchild[0], readbuf, sizeof(readbuf));
             readbuf[n] = '\0';
             pipe_buf[(cmd_count + cur->pipe_to)%1000] += readbuf;
-            // log("write to ordinary_pipe_buf: ");
-            // log(ordinary_pipe_buf);
-            // log("----");
 
             in = fd_fromchild[0];
 
@@ -378,6 +267,75 @@ int execute_command(struct command *command) {
     return status;
 }
 
+struct command* parse_command(std::string line) {
+    struct command *root = new struct command();
+    struct command *cur = root;
+
+    char *sep = new char[line.length() + 1];
+    std::copy(line.begin(), line.end(), sep);
+    sep[line.length()] = '\0';
+    char *segment;
+    int pipe_to;
+    int argc;
+
+    cur->pipe_to = -1; // -1 for stdout
+    cur->write_file = 0;
+    cur->file_name = NULL;
+    segment = strtok(sep, TOKEN_DELIMITERS);
+    for (argc = 0; argc < ARGSIZE; argc++) {
+        if (segment != NULL && (segment[0] == '|' || segment[0] == '>')) {
+            cur->args[argc] = NULL;
+            break;
+        }
+        cur->args[argc] = segment;
+        if (cur->args[argc] == NULL)
+            break;
+        segment = strtok(NULL, TOKEN_DELIMITERS);
+    }
+
+    while (segment != NULL) {
+        if (segment[0] == '|') {
+            if (segment[1] == '\0') {
+                pipe_to = 0; // 0 for ordinary pipe
+            }
+            else {
+                char junk;
+                sscanf(segment, "%c%d",&junk, &pipe_to);
+            }
+            cur->pipe_to = pipe_to;
+            segment = strtok(NULL, TOKEN_DELIMITERS);
+        }
+        else if (segment[0] == '>') {
+            cur->write_file = 1;
+            cur->file_name = strtok(NULL, TOKEN_DELIMITERS);
+            break;
+        }
+        else {
+            struct command *cmd = new struct command();
+            cur = cur->next = cmd;
+            cur->pipe_to = -1; // -1 for stdout
+            cur->write_file = 0;
+            cur->file_name = NULL;
+            for (argc = 0; argc < ARGSIZE; argc++) {
+                if (segment != NULL && (segment[0] == '|' || segment[0] == '>')) {
+                    cur->args[argc] = NULL;
+                    break;
+                }
+                cur->args[argc] = segment;
+                if (cur->args[argc] == NULL)
+                    break;
+                segment = strtok(NULL, TOKEN_DELIMITERS);
+            }
+        }
+    }
+
+    return root;
+}
+
+void prompt() {
+    writen(sockfd, "% ", 2);
+}
+
 void loop() {
     std::string line;
     struct command *command;
@@ -398,6 +356,13 @@ void loop() {
             status = 0;
         }
     }
+}
+
+void welcome() {
+    std::string greet = "****************************************\n"
+                        "** Welcome to the information server. **\n"
+                        "****************************************\n";
+    writen(sockfd, greet.c_str(), greet.length());
 }
 
 void init() {
