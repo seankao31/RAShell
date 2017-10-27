@@ -12,10 +12,12 @@
 #define COMMAND_BUFSIZE 256
 #define TOKEN_DELIMITERS " \t\r\n\a"
 #define ARGSIZE 128
+#define PIPE_CAPACITY 65536
 
 int sockfd;
 
-std::string pipebuf[1000];
+std::string pipe_buf[1000];
+std::string ordinary_pipe_buf;
 int cmd_count;
 
 
@@ -175,6 +177,7 @@ void execute_exit() {
 }
 
 int execute_single_command(struct command *command, int in_fd, int out_fd) {
+// int execute_single_command(struct command *command, int out_fd_tochild, int in_fd_fromchild = -1, int out_fd_fromchild = -1) {
     if (command->args[0] == NULL) {
         // do nothing (empty command)
         return 0;
@@ -280,33 +283,71 @@ int execute_single_command(struct command *command, int in_fd, int out_fd) {
 int execute_command(struct command *command) {
     struct command *cur;
     int status = 0;
-    int in = 0, fd[2];
+    int in = 0, fd_tochild[2], fd_fromchild[2];
+    // in is used to indicate if input is stdin
+    // in can NOT be used as file descriptor
 
     for (cur = command; cur != NULL && status != -1; cur = cur->next) {
         bool write_file;
         char *file_name;
+        pipe(fd_tochild);
+        pipe(fd_fromchild);
+
+        // generate input for child
+        std::string input = pipe_buf[cmd_count];
+        if (in != 0) {
+            input += ordinary_pipe_buf;
+            // TODO: somewhere clear this buf
+        }
+        // char readbuf[PIPE_CAPACITY];
+        // read(in, readbuf, sizeof(readbuf));
+        // input += std::string(readbuf);
+        log("input: ");
+        log(input);
+        write(fd_tochild[0], input.c_str(), input.length() + 1);
+
         // file
         if (cur->write_file) {
             int filefd = creat(cur->file_name, 0644);
-            status = execute_single_command(cur, in, filefd);
+            status = execute_single_command(cur, fd_tochild[0], filefd);
+            // status = execute_single_command(cur, in, filefd);
+
+            close(fd_tochild[0]);
+            close(fd_tochild[1]);
+            close(fd_fromchild[0]);
+            close(fd_fromchild[1]);
         }
         // ordinary pipe
         else if (cur->pipe_to == 0) {
-            pipe(fd);
-            status = execute_single_command(cur, in, fd[1]);
-            if (in != 0)
-                close(in);
-            close(fd[1]);
-            in = fd[0];
+            status = execute_single_command(cur, fd_tochild[0], fd_fromchild[1]);
+
+            char readbuf[PIPE_CAPACITY];
+            read(fd_fromchild[0], readbuf, sizeof(readbuf));
+            ordinary_pipe_buf = readbuf;
+            log("ordinary_pipe_buf: ");
+            log(ordinary_pipe_buf);
+
+            in = fd_fromchild[0];
+
+            close(fd_tochild[0]);
+            close(fd_tochild[1]);
+            close(fd_fromchild[0]);
+            close(fd_fromchild[1]);
         }
         // stdout
         else if (cur->pipe_to == -1) {
-            status = execute_single_command(cur, in, 1);
+            status = execute_single_command(cur, fd_tochild[0], 1);
+            close(fd_tochild[0]);
+            close(fd_tochild[1]);
+            close(fd_fromchild[0]);
+            close(fd_fromchild[1]);
         }
         // pipe n
         else {
 
         }
+
+
         std::cout << "status: " << status << std::endl;
     }
     // just leaved for loop with status == -1 due to first command
