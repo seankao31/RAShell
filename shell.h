@@ -49,13 +49,13 @@ void err_dump(const char* str) {
 void log(const int i) {
     char numstr[10];
     sprintf(numstr, "%d", i);
-    std::cerr << "log: " << numstr << std::endl;
+    // std::cerr << "log: " << numstr << std::endl;
     writen(sockfd, numstr, strlen(numstr));
     writen(sockfd, "\n", 1);
 }
 
 void log(const std::string str) {
-    std::cerr << "log: " << str << std::endl;
+    // std::cerr << "log: " << str << std::endl;
     writen(sockfd, str.c_str(), str.length());
     writen(sockfd, "\n", 1);
 }
@@ -63,11 +63,11 @@ void log(const std::string str) {
 void log(const char* str) {
     if (str == NULL) {
         std::string errmsg = "trying to log NULL string\n";
-        std::cerr << "log: " << errmsg << std::endl;
+        // std::cerr << "log: " << errmsg << std::endl;
         writen(sockfd, "", 0);
         return;
     }
-    std::cerr << "log: " << str << std::endl;
+    // std::cerr << "log: " << str << std::endl;
     writen(sockfd, str, strlen(str));
     writen(sockfd, "\n", 1);
 }
@@ -291,11 +291,13 @@ int execute_command(struct command *command) {
         bool write_file;
         char *file_name;
         pipe(fd_tochild);
-        pipe(fd_fromchild);
 
         // generate input for child
         std::string input = pipe_buf[cmd_count];
         if (in != 0) {
+            log("read from ordinary_pipe_buf: ");
+            log(ordinary_pipe_buf);
+            log("----");
             input += ordinary_pipe_buf;
             // TODO: somewhere clear this buf
         }
@@ -304,7 +306,8 @@ int execute_command(struct command *command) {
         // input += std::string(readbuf);
         log("input: ");
         log(input);
-        write(fd_tochild[0], input.c_str(), input.length() + 1);
+        log("----");
+        write(fd_tochild[1], input.c_str(), input.length() + 1);
 
         // file
         if (cur->write_file) {
@@ -314,33 +317,34 @@ int execute_command(struct command *command) {
 
             close(fd_tochild[0]);
             close(fd_tochild[1]);
-            close(fd_fromchild[0]);
-            close(fd_fromchild[1]);
         }
         // ordinary pipe
         else if (cur->pipe_to == 0) {
+
+        pipe(fd_fromchild);
+
             status = execute_single_command(cur, fd_tochild[0], fd_fromchild[1]);
 
             char readbuf[PIPE_CAPACITY];
             read(fd_fromchild[0], readbuf, sizeof(readbuf));
             ordinary_pipe_buf = readbuf;
-            log("ordinary_pipe_buf: ");
+            log("write to ordinary_pipe_buf: ");
             log(ordinary_pipe_buf);
+            log("----");
 
             in = fd_fromchild[0];
 
-            close(fd_tochild[0]);
+            // close(fd_tochild[0]);
             close(fd_tochild[1]);
             close(fd_fromchild[0]);
-            close(fd_fromchild[1]);
+            // close(fd_fromchild[1]);
         }
         // stdout
         else if (cur->pipe_to == -1) {
             status = execute_single_command(cur, fd_tochild[0], 1);
+
             close(fd_tochild[0]);
             close(fd_tochild[1]);
-            close(fd_fromchild[0]);
-            close(fd_fromchild[1]);
         }
         // pipe n
         else {
