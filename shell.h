@@ -172,6 +172,9 @@ int execute_single_command(struct command *command, int in_fd, int out_fd, int j
                 if (waitpid(pid, &status, 0) == -1) {
                     err_dump(strerror(errno));
                 }
+                else {
+                    std::cout << "wait" << std::endl;
+                }
                 if (status != 0) {
                     status = -1;
                 }

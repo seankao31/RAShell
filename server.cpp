@@ -55,6 +55,12 @@ int main(int argc, char const* argv[])
             shell(newsockfd);
             exit(0);
         }
+        else {
+            int status;
+            if (waitpid(childpid, &status, 0) == -1) {
+                std::cerr << "server: zombie" << std::endl;
+            }
+        }
         close(newsockfd);
     }
 
