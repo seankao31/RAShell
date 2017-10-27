@@ -15,6 +15,10 @@
 
 int sockfd;
 
+std::string pipebuf[1000];
+int cmd_count;
+
+
 void welcome() {
     std::string greet = "****************************************\n"
                         "** Welcome to the information server. **\n"
@@ -175,7 +179,6 @@ int execute_single_command(struct command *command, int in_fd, int out_fd) {
         // do nothing (empty command)
         return 0;
     }
-    // TODO: check if there's '/' character
 
     for (int i = 0; i < ARGSIZE; i++) {
         if (command->args[i] == NULL)
@@ -187,10 +190,13 @@ int execute_single_command(struct command *command, int in_fd, int out_fd) {
         }
     }
 
+    std::cout << "command count for [" << command->args[0] << "]: " << cmd_count << std::endl;
+
     int status = 0;
 
     // built in command
     if (strcmp(command->args[0], "exit") == 0) {
+        cmd_count = (cmd_count + 1) % 1000;
         execute_exit();
     }
     else if (strcmp(command->args[0], "printenv") == 0) {
@@ -199,6 +205,9 @@ int execute_single_command(struct command *command, int in_fd, int out_fd) {
             err_dump(std::string("incorrect argument number: [") + command->args[0] + "]");
             return -1;
         }
+
+        cmd_count = (cmd_count + 1) % 1000;
+
         pPath = getenv(command->args[1]);
         std::string path;
         if (pPath == NULL) {
@@ -215,6 +224,8 @@ int execute_single_command(struct command *command, int in_fd, int out_fd) {
             err_dump(std::string("incorrect argument number: [") + command->args[0] + "]");
             return -1;
         }
+
+        cmd_count = (cmd_count + 1) % 1000;
         status = setenv(command->args[1], command->args[2], 1);
     }
     else {
@@ -257,6 +268,9 @@ int execute_single_command(struct command *command, int in_fd, int out_fd) {
                 if (status != 0) {
                     status = -1;
                 }
+                else {
+                    cmd_count = (cmd_count + 1) % 1000;
+                }
         }
     }
 
@@ -280,7 +294,8 @@ int execute_command(struct command *command) {
         else if (cur->pipe_to == 0) {
             pipe(fd);
             status = execute_single_command(cur, in, fd[1]);
-            close(in);
+            if (in != 0)
+                close(in);
             close(fd[1]);
             in = fd[0];
         }
@@ -293,6 +308,10 @@ int execute_command(struct command *command) {
 
         }
         std::cout << "status: " << status << std::endl;
+    }
+    // just leaved for loop with status == -1 due to first command
+    if (status == -1 && cur == command->next) {
+        cmd_count = (cmd_count + 1) % 1000;
     }
 
     return status;
@@ -324,6 +343,7 @@ void init() {
     chdir(home);
     chdir("ras");
     setenv("PATH", "bin:.", 1);
+    cmd_count = 0;
 }
 
 int shell(int fd) {
