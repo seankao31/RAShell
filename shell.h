@@ -199,7 +199,6 @@ int execute_single_command(struct command *command, int in_fd, int out_fd, int j
 
     // built in command
     if (strcmp(command->args[0], "exit") == 0) {
-        cmd_count = (cmd_count + 1) % 1000;
         execute_exit();
     }
     else if (strcmp(command->args[0], "printenv") == 0) {
@@ -208,8 +207,6 @@ int execute_single_command(struct command *command, int in_fd, int out_fd, int j
             err_dump(std::string("incorrect argument number: [") + command->args[0] + "]");
             return -1;
         }
-
-        cmd_count = (cmd_count + 1) % 1000;
 
         pPath = getenv(command->args[1]);
         std::string path;
@@ -228,7 +225,6 @@ int execute_single_command(struct command *command, int in_fd, int out_fd, int j
             return -1;
         }
 
-        cmd_count = (cmd_count + 1) % 1000;
         status = setenv(command->args[1], command->args[2], 1);
     }
     else {
@@ -273,9 +269,6 @@ int execute_single_command(struct command *command, int in_fd, int out_fd, int j
                 }
                 if (status != 0) {
                     status = -1;
-                }
-                else {
-                    cmd_count = (cmd_count + 1) % 1000;
                 }
         }
     }
@@ -324,13 +317,13 @@ int execute_command(struct command *command) {
         }
         // ordinary pipe
         else if (cur->pipe_to == 0) {
-
             pipe(fd_fromchild);
 
             status = execute_single_command(cur, fd_tochild[0], fd_fromchild[1], fd_fromchild[0]);
 
             char readbuf[PIPE_CAPACITY];
-            read(fd_fromchild[0], readbuf, sizeof(readbuf));
+            int n = read(fd_fromchild[0], readbuf, sizeof(readbuf));
+            readbuf[n] = '\0';
             ordinary_pipe_buf = readbuf;
             // log("write to ordinary_pipe_buf: ");
             // log(ordinary_pipe_buf);
@@ -350,14 +343,35 @@ int execute_command(struct command *command) {
         }
         // pipe n
         else {
+            pipe(fd_fromchild);
 
+            status = execute_single_command(cur, fd_tochild[0], fd_fromchild[1], fd_fromchild[0]);
+
+            char readbuf[PIPE_CAPACITY];
+            int n = read(fd_fromchild[0], readbuf, sizeof(readbuf));
+            readbuf[n] = '\0';
+            pipe_buf[(cmd_count + cur->pipe_to)%1000] += readbuf;
+            // log("write to ordinary_pipe_buf: ");
+            // log(ordinary_pipe_buf);
+            // log("----");
+
+            in = fd_fromchild[0];
+
+            close(fd_tochild[0]);
+            close(fd_fromchild[0]);
+            close(fd_fromchild[1]);
         }
 
+        if (status == 0) {
+            pipe_buf[cmd_count].clear();
+            cmd_count = (cmd_count + 1) % 1000;
+        }
 
         std::cout << "status: " << status << std::endl;
     }
     // just leaved for loop with status == -1 due to first command
     if (status == -1 && cur == command->next) {
+        pipe_buf[cmd_count].clear();
         cmd_count = (cmd_count + 1) % 1000;
     }
 
@@ -371,7 +385,9 @@ void loop() {
 
     while (status >= 0) {
         prompt();
+        std::cout << "prompted" << std::endl;
         myreadline(sockfd, line);
+        std::cout << "read line: " << line << std::endl;
         if (line.length() == 0) {
             continue;
         }
