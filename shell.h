@@ -33,8 +33,7 @@ void err_dump(const std::string str) {
 
 void err_dump(const char* str) {
     if (str == NULL) {
-        std::string errmsg = "trying to err_dump NULL string\n";
-        writen(sockfd, errmsg.c_str(), errmsg.length());
+        writen(sockfd, "", 0);
         return;
     }
     writen(sockfd, str, strlen(str));
@@ -44,11 +43,13 @@ void err_dump(const char* str) {
 void log(const int i) {
     char numstr[10];
     sprintf(numstr, "%d", i);
+    std::cerr << "log: " << numstr << std::endl;
     writen(sockfd, numstr, strlen(numstr));
     writen(sockfd, "\n", 1);
 }
 
 void log(const std::string str) {
+    std::cerr << "log: " << str << std::endl;
     writen(sockfd, str.c_str(), str.length());
     writen(sockfd, "\n", 1);
 }
@@ -56,9 +57,11 @@ void log(const std::string str) {
 void log(const char* str) {
     if (str == NULL) {
         std::string errmsg = "trying to log NULL string\n";
-        writen(sockfd, errmsg.c_str(), errmsg.length());
+        std::cerr << "log: " << errmsg << std::endl;
+        writen(sockfd, "", 0);
         return;
     }
+    std::cerr << "log: " << str << std::endl;
     writen(sockfd, str, strlen(str));
     writen(sockfd, "\n", 1);
 }
@@ -69,8 +72,7 @@ void client_output(const std::string str) {
 
 void client_output(const char* str) {
     if (str == NULL) {
-        std::string errmsg = "trying to output NULL string\n";
-        writen(sockfd, errmsg.c_str(), errmsg.length());
+        writen(sockfd, "", 0);
         return;
     }
     writen(sockfd, str, strlen(str));
@@ -174,6 +176,16 @@ int execute_single_command(struct command *command, int in_fd, int out_fd) {
         return 0;
     }
     // TODO: check if there's '/' character
+
+    for (int i = 0; i < ARGSIZE; i++) {
+        if (command->args[i] == NULL)
+            break;
+        std::string str(command->args[i]);
+        if (str.find('/') != std::string::npos) {
+            err_dump("command should not contain character '/'");
+            return 0;
+        }
+    }
 
     int status = 0;
 
