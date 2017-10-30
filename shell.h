@@ -219,6 +219,9 @@ int execute_command(struct command *command) {
 
             status = execute_single_command(cur, fd_tochild[0], fd_fromchild[1], fd_fromchild[0]);
 
+            if (status == -1)
+                break;
+
             char readbuf[PIPE_CAPACITY];
             int n = read(fd_fromchild[0], readbuf, sizeof(readbuf));
             readbuf[n] = '\0';
@@ -241,6 +244,9 @@ int execute_command(struct command *command) {
             pipe(fd_fromchild);
 
             status = execute_single_command(cur, fd_tochild[0], fd_fromchild[1], fd_fromchild[0]);
+
+            if (status == -1)
+                break;
 
             char readbuf[PIPE_CAPACITY];
             int n = read(fd_fromchild[0], readbuf, sizeof(readbuf));
